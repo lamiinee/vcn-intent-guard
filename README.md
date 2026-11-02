@@ -4,7 +4,6 @@ Objective 1 slice: a human creates a signed **Intent Mandate** in a small UI. A 
 
 New to the code? Start with [docs/walkthrough.md](docs/walkthrough.md): step-by-step instructions to run it, trace a request through the code, and add rules or endpoints.
 
-See [CLAUDE.md](CLAUDE.md) for project context, [docs/architecture.md](docs/architecture.md) for the component and runtime diagrams, and [docs/ap2-alignment.md](docs/ap2-alignment.md) for how the mandate maps to AP2.
 
 ## Run it
 
