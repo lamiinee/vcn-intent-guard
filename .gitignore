@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+.pytest_cache/
+lambda-version-backup.tar.gz
+principal_key.pem
+.env
+*.pem

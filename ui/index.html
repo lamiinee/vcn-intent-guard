@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intent-Guard Console</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --ink: #1b1f24; --muted: #5d6673; --line: #dde1e6;
+    --accent: #2457c5; --ok: #1f7a43; --ok-bg: #e6f4ec; --bad: #b42318; --bad-bg: #fdecea;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, sans-serif; }
+  header { padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 2px 0 0; color: var(--muted); }
+  main { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 16px; padding: 16px 24px; max-width: 1280px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 16px; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+  h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .step { display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff;
+          text-align: center; font-size: 12px; line-height: 20px; margin-right: 6px; }
+  label { display: block; font-weight: 600; margin: 10px 0 4px; }
+  input[type=text], input[type=number], textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+  textarea { font-family: var(--mono); font-size: 12px; min-height: 150px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .checks { display: flex; gap: 16px; } .checks label { font-weight: 400; margin: 0; }
+  button { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent);
+           background: var(--accent); color: #fff; cursor: pointer; }
+  button.secondary { background: var(--panel); color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .stack > * + * { margin-top: 16px; }
+  .err { color: var(--bad); white-space: pre-wrap; margin-top: 8px; }
+  .muted { color: var(--muted); }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
+  dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+  code, .mono { font-family: var(--mono); font-size: 12px; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--bg); border: 1px solid var(--line); }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .actions { grid-template-columns: 1fr; } }
+  .preset { border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .preset p { margin: 4px 0 10px; color: var(--muted); }
+  .decision { border-radius: 8px; padding: 12px 14px; border: 1px solid; }
+  .decision.approve { background: var(--ok-bg); border-color: var(--ok); }
+  .decision.deny { background: var(--bad-bg); border-color: var(--bad); }
+  .decision .verdict { font-weight: 700; font-size: 15px; }
+  .approve .verdict { color: var(--ok); } .deny .verdict { color: var(--bad); }
+  .decision .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .tbl { overflow-x: auto; }
+  details summary { cursor: pointer; color: var(--accent); margin-top: 8px; }
+  .budgetbar { height: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .budgetbar div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Intent-Guard Console</h1>
+  <p>Create a signed Intent Mandate, then send the agent's action requests against it.</p>
+</header>
+
+<main>
+  <section>
+    <h2><span class="step">1</span>Create mandate</h2>
+    <form id="create">
+      <label for="desc">Intent (natural language)</label>
+      <input id="desc" type="text" value="Book a round-trip flight RIC to JFK under $400" required>
+      <div class="row">
+        <div><label for="principal">Principal</label><input id="principal" type="text" value="user_001" required></div>
+        <div><label for="agent">Agent</label><input id="agent" type="text" value="agent_flight_01" required></div>
+      </div>
+      <label>Allowed actions</label>
+      <div class="checks">
+        <label><input type="checkbox" name="action" value="search" checked> search</label>
+        <label><input type="checkbox" name="action" value="pay" checked> pay</label>
+      </div>
+      <div class="row">
+        <div><label for="total">Total budget ($)</label><input id="total" type="number" min="0.01" step="0.01" value="400.00" required></div>
+        <div><label for="pertx">Per transaction ($)</label><input id="pertx" type="number" min="0.01" step="0.01" value="400.00" required></div>
+      </div>
+      <label for="merchants">Merchant allowlist (comma-separated)</label>
+      <input id="merchants" type="text" value="mockair.test">
+      <div class="row">
+        <div><label for="days">Expires in (days)</label><input id="days" type="number" min="1" value="7" required></div>
+        <div><label>Status</label><div class="checks" style="margin-top:8px"><label><input id="enabled" type="checkbox" checked> enabled</label></div></div>
+      </div>
+      <p class="muted" style="margin:12px 0">Type: <span class="pill">open</span> &nbsp;Currency: <span class="pill">USD</span></p>
+      <button type="submit">Create &amp; sign mandate</button>
+      <div id="createErr" class="err"></div>
+    </form>
+  </section>
+
+  <div class="stack">
+    <section id="mandateCard" hidden>
+      <h2>Stored mandate</h2>
+      <dl id="mandateFields"></dl>
+      <details><summary>Raw JSON from DynamoDB</summary><pre class="mono" id="mandateJson"></pre></details>
+    </section>
+
+    <section>
+      <h2><span class="step">2</span>Agent requests an action</h2>
+      <p class="muted" id="noMandate">Create a mandate first.</p>
+      <div class="actions">
+        <div class="preset">
+          <strong>Within the mandate</strong>
+          <p>Pay $312.50 to <code>mockair.test</code> for one RIC–JFK flight.</p>
+          <button class="run" data-preset="good" disabled>Send request</button>
+        </div>
+        <div class="preset">
+          <strong>Violates the mandate</strong>
+          <p>Pay $312.50 to <code>risky.example</code>, which is not on the allowlist.</p>
+          <button class="run secondary" data-preset="bad" disabled>Send request</button>
+        </div>
+      </div>
+      <details>
+        <summary>Custom request</summary>
+        <p class="muted">Edit and send any request, e.g. change the agent, action, currency or amount (in cents).</p>
+        <textarea id="custom"></textarea>
+        <button class="run secondary" data-preset="custom" disabled style="margin-top:8px">Send custom request</button>
+      </details>
+      <div id="runErr" class="err"></div>
+    </section>
+
+    <section>
+      <h2><span class="step">3</span>Decisions</h2>
+      <div id="decisions" class="stack"><p class="muted">No requests yet.</p></div>
+    </section>
+
+    <section>
+      <h2>Audit log</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Time (UTC)</th><th>Event</th><th>Decision</th><th>Reason</th><th>Request</th></tr></thead>
+        <tbody id="audit"><tr><td colspan="5" class="muted">Empty.</td></tr></tbody>
+      </table></div>
+    </section>
+  </div>
+</main>
+
+<script>
+// Served by the FastAPI app itself (GET /), so API calls go to the same origin.
+const API = "";
+const $ = (id) => document.getElementById(id);
+let mandate = null;
+
+const dollars = (cents) => `$${(cents / 100).toFixed(2)}`;
+const toCents = (v) => Math.round(parseFloat(v) * 100);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// FastAPI errors: {detail: "text"} or, for validation, {detail: [{loc: ["body", "budget", "total"], msg}]}.
+function errorText(data, fallback) {
+  const d = data?.detail;
+  if (Array.isArray(d)) return d.map((e) => `${(e.loc || []).filter((p) => p !== "body").join(".")}: ${e.msg}`).join("\n");
+  return d || fallback;
+}
+
+async function call(method, path, body) {
+  const res = await fetch(API + path, {
+    method, headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(`${res.status}: ${errorText(data, res.statusText)}`);
+  return data;
+}
+
+function payRequest(merchant) {
+  return {
+    mandate_id: mandate.mandate_id, agent_id: mandate.agent_id, action: "pay", nonce: crypto.randomUUID(),
+    cart: { merchant, currency: "USD", total: 31250, items: [{ item: "Round-trip flight RIC-JFK", qty: 1 }] },
+  };
+}
+
+function renderMandate() {
+  const b = mandate.budget;
+  const pct = Math.min(100, (100 * mandate.spent_to_date) / b.total);
+  $("mandateFields").innerHTML = `
+    <dt>ID</dt><dd class="mono">${esc(mandate.mandate_id)} <span class="pill">v${mandate.version}</span></dd>
+    <dt>Intent</dt><dd>${esc(mandate.natural_language_description)}</dd>
+    <dt>Principal → agent</dt><dd>${esc(mandate.principal_id)} → ${esc(mandate.agent_id)}</dd>
+    <dt>Allowed actions</dt><dd>${mandate.allowed_actions.map((a) => `<span class="pill">${esc(a)}</span>`).join(" ")}</dd>
+    <dt>Merchants</dt><dd>${mandate.merchant_allowlist.map((m) => `<code>${esc(m)}</code>`).join(", ") || "none"}</dd>
+    <dt>Budget</dt><dd>${dollars(mandate.spent_to_date)} of ${dollars(b.total)} spent · max ${dollars(b.per_transaction)} per transaction
+      <div class="budgetbar"><div style="width:${pct}%"></div></div></dd>
+    <dt>Valid</dt><dd>${esc(mandate.valid_from)} → ${esc(mandate.expires_at)}</dd>
+    <dt>State</dt><dd><span class="pill">${esc(mandate.status)}</span> <span class="pill">${mandate.enabled ? "enabled" : "disabled"}</span> <span class="pill">${esc(mandate.mandate_type)}</span></dd>
+    <dt>Created / updated</dt><dd>${esc(mandate.created_at)} / ${esc(mandate.updated_at)}</dd>
+    <dt>Signature (ES256)</dt><dd class="mono">${esc(mandate.signature.slice(0, 48))}…</dd>`;
+  $("mandateJson").textContent = JSON.stringify(mandate, null, 2);
+  $("mandateCard").hidden = false;
+}
+
+async function refresh() {
+  mandate = await call("GET", `/mandates/${mandate.mandate_id}`);
+  renderMandate();
+  const { events } = await call("GET", `/mandates/${mandate.mandate_id}/audit`);
+  $("audit").innerHTML = events.slice().reverse().map((e) => {
+    const r = e.request;
+    const summary = r ? `${esc(r.agent_id)} · ${esc(r.action)}${r.cart ? ` · ${dollars(r.cart.total)} @ ${esc(r.cart.merchant)}` : ""}` : "";
+    return `<tr><td class="mono">${esc(e.timestamp)}</td><td>${esc(e.event)}</td>
+      <td>${e.decision ? `<span class="pill" style="color:var(--${e.decision === "approve" ? "ok" : "bad"})">${esc(e.decision)}</span>` : ""}</td>
+      <td class="mono">${esc(e.reason_code)}</td><td>${summary}</td></tr>`;
+  }).join("");
+}
+
+$("create").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  $("createErr").textContent = "";
+  const btn = ev.submitter; btn.disabled = true;
+  try {
+    mandate = await call("POST", "/mandates", {
+      principal_id: $("principal").value, agent_id: $("agent").value,
+      natural_language_description: $("desc").value, mandate_type: "open",
+      allowed_actions: [...document.querySelectorAll("input[name=action]:checked")].map((c) => c.value),
+      budget: { currency: "USD", total: toCents($("total").value), per_transaction: toCents($("pertx").value) },
+      merchant_allowlist: $("merchants").value.split(",").map((s) => s.trim()).filter(Boolean),
+      enabled: $("enabled").checked,
+      expires_at: new Date(Date.now() + $("days").value * 86400e3).toISOString(),
+    });
+    $("noMandate").hidden = true;
+    document.querySelectorAll("button.run").forEach((b) => (b.disabled = false));
+    $("custom").value = JSON.stringify({ ...payRequest("mockair.test"), nonce: "<auto>" }, null, 2);
+    $("decisions").innerHTML = '<p class="muted">No requests yet.</p>';
+    await refresh();
+  } catch (e) {
+    $("createErr").textContent = e.message;
+  } finally { btn.disabled = false; }
+});
+
+document.querySelectorAll("button.run").forEach((btn) => btn.addEventListener("click", async () => {
+  $("runErr").textContent = "";
+  let req;
+  try {
+    if (btn.dataset.preset === "good") req = payRequest("mockair.test");
+    else if (btn.dataset.preset === "bad") req = payRequest("risky.example");
+    else {
+      req = JSON.parse($("custom").value);
+      if (req.nonce === "<auto>") req.nonce = crypto.randomUUID();
+    }
+    btn.disabled = true;
+    const d = await call("POST", "/actions/request", req);
+    const what = req.cart ? `${esc(req.action)} ${dollars(req.cart.total)} at <code>${esc(req.cart.merchant)}</code>` : esc(req.action);
+    const card = document.createElement("div");
+    card.className = `decision ${d.decision}`;
+    card.innerHTML = `<div class="verdict">${d.decision === "approve" ? "✓ Approved" : "✕ Denied"} · <span class="mono">${esc(d.reason_code)}</span></div>
+      <div>${esc(req.agent_id)} asked to ${what}</div>
+      ${d.detail ? `<div class="meta">${esc(d.detail)}</div>` : ""}
+      <div class="meta">mandate ${esc(d.mandate_id)} v${d.mandate_version ?? "–"} · ${new Date().toLocaleTimeString()}</div>`;
+    const list = $("decisions");
+    if (list.querySelector("p.muted")) list.innerHTML = "";
+    list.prepend(card);
+    await refresh();
+  } catch (e) {
+    $("runErr").textContent = e.message;
+  } finally { btn.disabled = false; }
+}));
+</script>
+</body>
+</html>

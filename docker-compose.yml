@@ -1,0 +1,10 @@
+services:
+  localstack:
+    # Pinned: newer LocalStack images may require an auth token.
+    image: localstack/localstack:4.4
+    ports:
+      - "4566:4566"
+    environment:
+      # Only DynamoDB for now. The API runs on your machine with uvicorn.
+      - SERVICES=dynamodb
+      - PERSISTENCE=0
